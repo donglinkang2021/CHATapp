@@ -1,6 +1,6 @@
 import streamlit as st
 from ollama import Client
-import json
+import base64
 
 # 设置页面配置
 st.set_page_config(
@@ -23,6 +23,10 @@ if "available_models" not in st.session_state:
 
 if "client" not in st.session_state:
     st.session_state.client = None
+
+# 添加新的状态变量用于存储上传的图片
+if "uploaded_image" not in st.session_state:
+    st.session_state.uploaded_image = None
 
 # 侧边栏配置
 with st.sidebar:
@@ -68,15 +72,30 @@ with chat_container:
 
 # 在底部容器中放置输入框
 with input_container:
+    # 添加图片上传组件
+    uploaded_file = st.file_uploader("上传图片（可选）", type=['png', 'jpg', 'jpeg'])
+    if uploaded_file:
+        # 将图片数据转换为base64格式
+        st.session_state.uploaded_image = base64.b64encode(uploaded_file.getvalue()).decode('utf-8')
+    else:
+        st.session_state.uploaded_image = None
+    
     # 聊天输入
     if prompt := st.chat_input("输入您的问题"):
         if not st.session_state.selected_model:
             st.error("请先选择一个模型！")
         else:
             # 添加用户消息
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            user_message = {"role": "user", "content": prompt}
+            # 如果有图片，添加到消息中
+            if st.session_state.uploaded_image:
+                user_message["images"] = [st.session_state.uploaded_image]
+                
+            st.session_state.messages.append(user_message)
             with st.chat_message("user"):
                 st.markdown(prompt)
+                if st.session_state.uploaded_image:
+                    st.image(uploaded_file)
             
             # 添加助手消息
             with st.chat_message("assistant"):
@@ -87,8 +106,8 @@ with input_container:
                     # 使用客户端进行对话
                     stream = st.session_state.client.chat(
                         model=st.session_state.selected_model,
-                        messages=[{"role": m["role"], "content": m["content"]} 
-                                for m in st.session_state.messages],
+                        messages=[{"role": m["role"], "content": m["content"], 
+                                 "images": m.get("images", [])} for m in st.session_state.messages],
                         stream=True,
                     )
                     
