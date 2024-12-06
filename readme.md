@@ -8,3 +8,7 @@ source venv/bin/activate # windows下使用venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+```shell
+streamlit run run.py
+```
