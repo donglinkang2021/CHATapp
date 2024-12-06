@@ -5,10 +5,10 @@ client = Client(host='http://localhost:11434')
 
 def test_generate():
   response = client.generate(
-    model = 'llama3.2', 
-    prompt = "why is the sky blue?",
+    model = 'qwq', 
+    prompt = "为什么天空是蓝色的？",
   )
-  print(response)
+  print(response.response)
 
 def test_chat_stream():
   stream = client.chat(
@@ -18,7 +18,7 @@ def test_chat_stream():
   )
 
   for chunk in stream:
-    print(chunk['message']['content'], end='', flush=True)
+    print(chunk.message.content, end='', flush=True)
 
 def test_embed():
   response = client.embed(
@@ -37,10 +37,22 @@ def test_list_models():
   }
   print(tabulate(data, headers='keys'))
 
+def test_chat_image():
+  response = client.chat(
+      model='llama3.2-vision',
+      messages=[{
+          'role': 'user',
+          'content': 'What is in this image?',
+          'images': ['penpen.png'] # or base64 encoded image here
+      }]
+  )
+  print(response.message.content)
+
 if __name__ == '__main__':
-  # test_generate()
+  test_generate()
   # test_chat_stream()
   # test_embed()
-  test_list_models()
+  # test_list_models()
+  # test_chat_image()
 
 # python scripts\demo_ollama.py
