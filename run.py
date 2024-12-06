@@ -79,42 +79,56 @@ with input_container:
         st.session_state.uploaded_image = base64.b64encode(uploaded_file.getvalue()).decode('utf-8')
     else:
         st.session_state.uploaded_image = None
-    
+
     # 聊天输入
-    if prompt := st.chat_input("输入您的问题"):
-        if not st.session_state.selected_model:
-            st.error("请先选择一个模型！")
-        else:
-            # 添加用户消息
-            user_message = {"role": "user", "content": prompt}
-            # 如果有图片，添加到消息中
-            if st.session_state.uploaded_image:
-                user_message["images"] = [st.session_state.uploaded_image]
-                
-            st.session_state.messages.append(user_message)
+    prompt = st.chat_input("输入您的问题")
+
+# 在聊天容器中显示消息历史
+with chat_container:
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            if "images" in message:
+                for img in message["images"]:
+                    st.image(base64.b64decode(img))
+
+# 处理聊天输入
+if prompt:
+    if not st.session_state.selected_model:
+        st.error("请先选择一个模型！")
+    else:
+        # 添加用户消息
+        user_message = {"role": "user", "content": prompt}
+        # 如果有图片，添加到消息中
+        if st.session_state.uploaded_image:
+            user_message["images"] = [st.session_state.uploaded_image]
+
+        st.session_state.messages.append(user_message)
+        with chat_container:
             with st.chat_message("user"):
                 st.markdown(prompt)
                 if st.session_state.uploaded_image:
                     st.image(uploaded_file)
-            
-            # 添加助手消息
+
+        # 添加助手消息
+        with chat_container:
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
                 full_response = ""
-                
+
                 try:
                     # 使用客户端进行对话
                     stream = st.session_state.client.chat(
                         model=st.session_state.selected_model,
                         messages=[{"role": m["role"], "content": m["content"], 
-                                 "images": m.get("images", [])} for m in st.session_state.messages],
+                                   "images": m.get("images", [])} for m in st.session_state.messages],
                         stream=True,
                     )
-                    
+
                     for chunk in stream:
                         full_response += chunk['message']['content']
                         message_placeholder.markdown(full_response + "▌")
-                    
+
                     message_placeholder.markdown(full_response)
                     # 保存助手响应
                     st.session_state.messages.append({"role": "assistant", "content": full_response})
